@@ -16,12 +16,12 @@ import { BarChart } from "@mui/x-charts";
 const App = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [tables, setTables] = useState([]); // Store available table names
-  const [selectedTable, setSelectedTable] = useState(""); // Selected table for analysis
+  const [tables, setTables] = useState([]); 
+  const [selectedTable, setSelectedTable] = useState(""); 
   const [ageDistribution, setAgeDistribution] = useState(null);
 
   useEffect(() => {
-    fetchTables(); // Fetch tables when component loads
+    fetchTables(); 
   }, []);
 
   const fetchTables = async () => {
@@ -52,12 +52,12 @@ const App = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const newTableName = response.data.tableName; // Get the new table name from the response
+      const newTableName = response.data.tableName; 
       alert(`File uploaded successfully! New table created: ${newTableName}`);
 
-      await fetchTables(); // Refresh the list of tables
-      setSelectedTable(newTableName); // Auto-select the new table
-      fetchAgeDistribution(newTableName); // Fetch age distribution for new table
+      await fetchTables(); 
+      setSelectedTable(newTableName); 
+      fetchAgeDistribution(newTableName); 
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Upload failed. Check console for details.");
@@ -67,11 +67,14 @@ const App = () => {
   };
 
   const fetchAgeDistribution = async (table) => {
+    if (!table) return;
+
     try {
       const response = await axios.get(`http://localhost:3000/age-distribution/${table}`);
       setAgeDistribution(response.data);
     } catch (error) {
       console.error("Error fetching age distribution:", error);
+      alert("Failed to load age distribution.");
     }
   };
 
@@ -90,9 +93,7 @@ const App = () => {
         alignItems: "center",
         minHeight: "100vh",
         textAlign: "center",
-        marginTop:"25%",
-        marginLeft:"70%"
-
+        marginLeft:"80%",
       }}
     >
       <Typography variant="h4" gutterBottom>

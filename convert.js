@@ -8,29 +8,29 @@ function parseCSV(filePath) {
     fs.createReadStream(filePath)
       .pipe(csv())
       .on("data", (row) => {
-        const record = {
-          id: row.id || "",
-          first_name: row.first_name || "",
-          middle_name: row.middle_name || "",
-          last_name: row.last_name || "",
-          age: row.age || "",
+    
+        const nameParts = (row.name || "").split(" ").map(part => part.trim());
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.length > 1 ? nameParts.slice(-1)[0] : "";
+        const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(" ") : "";
+
+        const addressLines = (row.address || "").split(",").map(line => line.trim());
+        const address = {
+          line1: addressLines[0] || "",
+          line2: addressLines[1] || "",
+          line3: addressLines.length > 2 ? addressLines.slice(2).join(", ") : "",
         };
 
-        
-        const addressLines = (row.address || "").split(",").map(line => line.trim());
-        record.line_1 = addressLines[0] || "";
-        record.line_2 = addressLines[1] || "";
-        record.line_3 = addressLines[2] || "";
+        const record = {
+          name: {
+            first_name: firstName,
+            middle_name: middleName,
+            last_name: lastName,
+          },
+          age: row.age || "",
+          address: address,
+        };
 
-        // Extract additional info
-        const additionalInfo = {};
-        Object.entries(row).forEach(([key, value]) => {
-          if (!["id", "first_name", "middle_name", "last_name", "age", "address"].includes(key)) {
-            additionalInfo[key] = value;
-          }
-        });
-
-        record.additional_info = additionalInfo;
         results.push(record);
       })
       .on("end", () => resolve(results))

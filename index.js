@@ -9,24 +9,26 @@ const { pool } = require("./db");
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
-const upload = multer({ dest: process.env.UPLOAD_DIR || "uploads/" });
 const cors = require("cors");
 
 app.use(cors({ origin: "http://localhost:5173" }));
 
-// Generate a unique table name based on timestamp
+const upload = multer({ dest: process.env.UPLOAD_DIR || "uploads/" });
+
+
 const generateTableName = () => `users_${Date.now()}`;
 
-// Route for uploading CSV files
 app.post("/upload", upload.single("csvFile"), async (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded");
 
   const filePath = path.join(__dirname, req.file.path);
   const users = await parseCSV(filePath);
-  const tableName = generateTableName(); // Unique table for each upload
+  console.log(users);
+  console.log(users[0].name.first_name)
+  const tableName = generateTableName(); 
 
   try {
-    // Create a new table dynamically
+   
     await pool.query(`
       CREATE TABLE ${tableName} (
         id SERIAL PRIMARY KEY,
@@ -34,36 +36,33 @@ app.post("/upload", upload.single("csvFile"), async (req, res) => {
         middle_name TEXT,
         last_name TEXT,
         age INT,
-        address JSONB,
-        additional_info JSONB
+        address JSONB
       )
     `);
 
     for (const user of users) {
       const age = user.age ? parseInt(user.age, 10) : null;
-      if (age === null) continue;
 
       await pool.query(
-        `INSERT INTO ${tableName} (first_name, middle_name, last_name, age, address, additional_info) 
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO ${tableName} (first_name, middle_name, last_name, age, address) 
+         VALUES ($1, $2, $3, $4, $5)`,
         [
-          user.first_name || "Unknown",
-          user.middle_name || null,
-          user.last_name || "Unknown",
+          user.name?.first_name || "Unknown",
+          user.name?.middle_name || null,
+          user.name?.last_name || "Unknown",
           age,
           JSON.stringify({
-            line_1: user.line_1 || "N/A",
-            line_2: user.line_2 || "N/A",
-            line_3: user.line_3 || "N/A",
-          }),
-          JSON.stringify(user.additional_info || {}),
+            line_1: user.address?.line_1 || "N/A",
+            line_2: user.address?.line_2 || "N/A",
+            line_3: user.address?.line_3 || "N/A",
+          })
         ]
       );
     }
 
+   
     fs.unlinkSync(filePath);
-    
-    
+
     res.json({ message: "Upload successful", tableName });
 
   } catch (error) {
@@ -72,7 +71,7 @@ app.post("/upload", upload.single("csvFile"), async (req, res) => {
   }
 });
 
-// Route to get all available tables
+
 app.get("/tables", async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -82,6 +81,7 @@ app.get("/tables", async (req, res) => {
     `);
     
     const tableNames = rows.map(row => row.tablename);
+    console.log(tableNames)
     res.json(tableNames);
   } catch (error) {
     console.error("Error fetching tables:", error);
@@ -89,10 +89,9 @@ app.get("/tables", async (req, res) => {
   }
 });
 
-// Route to get age distribution from any table
+
 app.get("/age-distribution/:tableName", async (req, res) => {
   const tableName = req.params.tableName;
-
   try {
     const { rows } = await pool.query(`SELECT age FROM ${tableName}`);
     const ageGroups = { "< 20": 0, "20 to 40": 0, "40 to 60": 0, "> 60": 0 };
